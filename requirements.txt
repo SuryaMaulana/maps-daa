@@ -3,3 +3,6 @@ folium
 streamlit
 matplotlib
 networkx
+seaborn
+time
+numpy
