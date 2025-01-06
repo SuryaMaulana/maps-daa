@@ -495,37 +495,27 @@ def greedy_optimizer(items: List[Dict], vehicle_specs: List, max_capacity: float
     }
 def print_optimization_results(result: Dict):
     """Menampilkan hasil optimasi dalam format yang mudah dibaca"""
-    
-    # Inisialisasi state untuk menyimpan status tombol
-    if 'show_results' not in st.session_state:
-        st.session_state.show_results = False  # Menyimpan status apakah konten terbuka atau tidak
+    label = "Hasil Optimasi Greedy"
+    c = st.expander(label)
+    c.text("\n=== Hasil Optimasi Greedy ===")
+    c.text(f"Total Volume: {result['total_volume']:.2f} m³")
+    c.text(f"Total Value: {result['total_value']}")
+    c.text(f"Overall Utilization: {result['utilization']:.1f}%")
 
-    # Tombol di sidebar untuk toggle konten
-    if st.sidebar.button('Hasil Optimasi Greedy'):
-        st.session_state.show_results = not st.session_state.show_results  # Toggle status
+    c.text("\nUtilisasi per Kategori:")
+    for category, metrics in result['category_metrics'].items():
+        c.text(f"\n{category.upper()}:")
+        c.text(f"Volume Used: {metrics['volume_used']:.2f} m³")
+        c.text(f"Utilization: {metrics['utilization']:.1f}%")
 
-    # Tampilkan hasil optimasi jika 'show_results' True
-    if st.session_state.show_results:
-        # Menggunakan st.container() untuk menampilkan konten
-        with st.container(border=True):
-            st.text("\n=== Hasil Optimasi Greedy ===")
-            st.text(f"Total Volume: {result['total_volume']:.2f} m³")
-            st.text(f"Total Value: {result['total_value']}")
-            st.text(f"Overall Utilization: {result['utilization']:.1f}%")
+        c.text("\nSelected Items:")
+        for item_alloc in result['selected_items'][category]:
+            c.text(f"\n- {item_alloc['item']['nama']}")
+            c.text(f"  Total Quantity: {item_alloc['total_quantity']} units")
+            for box in item_alloc['boxes']:
+                c.text(f"  {box['type']}: {box['count']} box(es) "
+                      f"({box['capacity']} units each)")
 
-            st.text("\nUtilisasi per Kategori:")
-            for category, metrics in result['category_metrics'].items():
-                st.text(f"\n{category.upper()}:")
-                st.text(f"Volume Used: {metrics['volume_used']:.2f} m³")
-                st.text(f"Utilization: {metrics['utilization']:.1f}%")
-
-                st.text("\nSelected Items:")
-                for item_alloc in result['selected_items'][category]:
-                    st.text(f"\n- {item_alloc['item']['nama']}")
-                    st.text(f"  Total Quantity: {item_alloc['total_quantity']} units")
-                    for box in item_alloc['boxes']:
-                        st.text(f"  {box['type']}: {box['count']} box(es) "
-                                  f"({box['capacity']} units each)")
 # Modifikasi fungsi test_greedy_optimization()
 def test_greedy_optimization(selected_vehicle):
     """Testing optimasi untuk kendaraan yang dipilih"""
@@ -558,72 +548,63 @@ def test_greedy_optimization(selected_vehicle):
 # Modifikasi fungsi test_vehicle_system()
 def test_vehicle_system(optimized_items, vehicle_specs, start_location, end_location):
     """Function untuk testing sistem dengan data optimasi"""
+    label = "Hasil Analisis Untuk Kendaraan Yang Dipilih"
+    c = st.expander(label)
     
-    # Inisialisasi state untuk menyimpan status tombol
-    if 'show_results' not in st.session_state:
-        st.session_state.show_results = False  # Menyimpan status apakah konten terbuka atau tidak
+    # Header untuk kendaraan yang dipilih
+    vehicle_name = list(optimized_items.keys())[0]  # Karena hanya ada satu kendaraan
+    result = optimized_items[vehicle_name]
+    
+    c.text("\n================================================================================")
+    c.text(f"ANALYSIS FOR {vehicle_name}")
+    c.text("================================================================================\n")
 
-    # Tombol di sidebar untuk toggle konten
-    if st.sidebar.button('ANALYSIS FOR UNTUK KENDARAAN'):
-        st.session_state.show_results = not st.session_state.show_results  # Toggle status
+    # Data untuk kendaraan yang dipilih
+    total_volume = result['total_volume']
+    utilization = (total_volume / get_vehicle_capacity(vehicle_specs[vehicle_name])) * 100
+    total_value = result['total_value']
+    
+    c.text(f"Total Volume: {total_volume:,.2f} m³")
+    c.text(f"Utilization: {utilization:,.1f}%")
+    c.text(f"Total Value: {total_value:,.1f}")
 
-    # Tampilkan hasil analisis jika 'show_results' True
-    if st.session_state.show_results:
-        # Menggunakan st.container() untuk menampilkan konten
-        with st.container(border=True):
-            # Header untuk kendaraan yang dipilih
-            vehicle_name = list(optimized_items.keys())[0]  # Karena hanya ada satu kendaraan
-            result = optimized_items[vehicle_name]
+    # Category Distribution Analysis
+    c.text(f"\n{'='*40}")
+    c.text("CATEGORY DISTRIBUTION ANALYSIS")
+    c.text(f"{'='*40}\n")
 
-            st.text("\n================================================================================")
-            st.text(f"ANALYSIS FOR {vehicle_name}")
-            st.text("================================================================================\n")
+    for category, data in result['selected_items'].items():
+        total_qty = sum(item_alloc['total_quantity'] for item_alloc in data)
 
-            # Data untuk kendaraan yang dipilih
-            total_volume = result['total_volume']
-            utilization = (total_volume / get_vehicle_capacity(vehicle_specs[vehicle_name])) * 100
-            total_value = result['total_value']
+        c.text(f"{category.upper()}:")
+        c.text(f"- Different Products: {len(data)}")
+        c.text(f"- Total Quantity: {total_qty}")
+        c.text(f"- Volume Used: {result['category_metrics'][category]['volume_used']:.2f} m³")
+        c.text(f"- Utilization: {result['category_metrics'][category]['utilization']:.1f}%")
 
-            st.text(f"Total Volume: {total_volume:,.2f} m³")
-            st.text(f"Utilization: {utilization:,.1f}%")
-            st.text(f"Total Value: {total_value:,.1f}")
+    # Shipping Cost Analysis
+    c.text("\n================================================================================")
+    c.text("SHIPPING COST ANALYSIS")
+    c.text("================================================================================")
 
-            # Category Distribution Analysis
-            st.text(f"\n{'='*40}")
-            st.text("CATEGORY DISTRIBUTION ANALYSIS")
-            st.text(f"{'='*40}\n")
+    distance = start_location.calculate_distance(end_location)
+    c.text(f"\nJarak antara {start_location.name} dan {end_location.name}: {distance:.2f} km")
 
-            for category, data in result['selected_items'].items():
-                total_qty = sum(item_alloc['total_quantity'] for item_alloc in data)
+    specs = vehicle_specs[vehicle_name]
+    total_volume = result['total_volume']
+    max_load = get_vehicle_capacity(specs)
 
-                st.text(f"{category.upper()}:")
-                st.text(f"- Different Products: {len(data)}")
-                st.text(f"- Total Quantity: {total_qty}")
-                st.text(f"- Volume Used: {result['category_metrics'][category]['volume_used']:.2f} m³")
-                st.text(f"- Utilization: {result['category_metrics'][category]['utilization']:.1f}%")
+    c.text(f"\nKapasitas Maksimum: {specs[0]} m³")
+    c.text(f"Kapasitas Praktis: {max_load:.2f} m³")
+    c.text(f"Volume Terpakai: {total_volume:.2f} m³")
+    c.text(f"Utilization: {(total_volume/max_load)*100:.1f}%")
 
-            # Shipping Cost Analysis
-            st.text("\n================================================================================")
-            st.text("SHIPPING COST ANALYSIS")
-            st.text("================================================================================")
+    costs = calculate_shipping_cost(distance, total_volume, specs)
 
-            distance = start_location.calculate_distance(end_location)
-            st.text(f"\nJarak antara {start_location.name} dan {end_location.name}: {distance:.2f} km")
+    c.text(f"\nBiaya Transportasi:")
+    c.text(f"- Biaya BBM: Rp {costs['fuel_cost']:,.2f}")
+    c.text(f"- Total Biaya: Rp {costs['total_cost']:,.2f}")
 
-            specs = vehicle_specs[vehicle_name]
-            total_volume = result['total_volume']
-            max_load = get_vehicle_capacity(specs)
-
-            st.text(f"\nKapasitas Maksimum: {specs[0]} m³")
-            st.text(f"Kapasitas Praktis: {max_load:.2f} m³")
-            st.text(f"Volume Terpakai: {total_volume:.2f} m³")
-            st.text(f"Utilization: {(total_volume/max_load)*100:.1f}%")
-
-            costs = calculate_shipping_cost(distance, total_volume, specs)
-
-            st.text(f"\nBiaya Transportasi:")
-            st.text(f"- Biaya BBM: Rp {costs['fuel_cost']:,.2f}")
-            st.text(f"- Total Biaya: Rp {costs['total_cost']:,.2f}")
 # Modifikasi pemanggilan fungsi
 optimized_items = test_greedy_optimization(selected_vehicle)
 vehicles = create_vehicles()
@@ -916,38 +897,33 @@ def display_detailed_results(optimized_results: dict):
 
 def print_knapsack_results(result: Dict):
     """Display optimization results with priority information"""
+    label = "Hasil Optimasi Knapsack"
+    c = st.expander(label)
+    c.text("\n=== Hasil Optimasi Knapsack ===")
+    c.text(f"Total Volume: {result['total_volume']:.2f} m³")
+    c.text(f"Total Value: {result['total_value']:.1f}")
+    c.text(f"Overall Utilization: {result['utilization']:.1f}%")
 
-    # Menambahkan key unik untuk tombol ini
-    button_key = 'see_more_knapsack'
+    c.text("\nDetail per Kategori:")
+    for category, data in result['selected_items'].items():
+        c.text(f"\n{category.upper()}:")
+        c.text(f"Volume Used: {data['volume_used']:.2f} m³")
+        c.text(f"Utilization: {data['utilization']:.1f}%")
 
-    # Tombol di sidebar untuk toggle konten dengan key unik
-    if st.sidebar.button('See More', key=button_key):
-        # Konten ditampilkan jika tombol ditekan, namun tidak mempertahankan state
-        with st.container():
-            st.text("\n=== Hasil Optimasi Knapsack ===")
-            st.text(f"Total Volume: {result['total_volume']:.2f} m³")
-            st.text(f"Total Value: {result['total_value']:.1f}")
-            st.text(f"Overall Utilization: {result['utilization']:.1f}%")
-
-            st.text("\nDetail per Kategori:")
-            for category, data in result['selected_items'].items():
-                st.text(f"\n{category.upper()}:")
-                st.text(f"Volume Used: {data['volume_used']:.2f} m³")
-                st.text(f"Utilization: {data['utilization']:.1f}%")
-
-                st.text("\nSelected Items:")
-                for item in data['selected_items']:
-                    st.text(f"\n- {item['item']['nama']}")
-                    st.text(f"  Priority: {item['item']['priority']}")  # Added priority
-                    st.text(f"  Total Quantity: {item['quantity']} units")
-                    for box in item['boxes']:
-                        st.text(f"  {box['type']}: {box['count']} box(es) "
-                                f"({box['capacity']} units each)")
+        c.text("\nSelected Items:")
+        for item in data['selected_items']:
+            c.text(f"\n- {item['item']['nama']}")
+            c.text(f"  Priority: {item['item']['priority']}")  # Added priority
+            c.text(f"  Total Quantity: {item['quantity']} units")
+            for box in item['boxes']:
+                c.text(f"  {box['type']}: {box['count']} box(es) "
+                      f"({box['capacity']} units each)")
 
 def display_comparative_analysis(optimized_results: dict, vehicle_specs: dict,
                                start_location, end_location):
     """Display analysis for selected vehicle"""
-    c = st.container(border=True)
+    label = "Hasil Analisis Untuk Kendaraan Yang Dipilih"
+    c = st.expander(label)
     vehicle_name = list(optimized_results.keys())[0]
     result = optimized_results[vehicle_name]
 
@@ -1261,7 +1237,8 @@ def print_analysis_report(analyzer: OptimizationAnalyzer) -> None:
     Args:
         analyzer: OptimizationAnalyzer object
     """
-    c = st.container(border=True)
+    label = "ANALISIS PERBANDINGAN ALGORITMA OPTIMASI"
+    c = st.expander(label)
     c.text("=== ANALISIS PERBANDINGAN ALGORITMA OPTIMASI ===\n")
 
     # 1. Time Complexity Analysis
@@ -1530,7 +1507,8 @@ class OptimizationAnalyzer:
 
 def print_analysis_report(analyzer: OptimizationAnalyzer) -> None:
     """Print analysis report for all vehicles"""
-    c = st.container(border=True)
+    label = "ANALISIS PERBANDINGAN ALGORITMA OPTIMASI"
+    c = st.expander(label)
     for vehicle_name in analyzer.greedy_metrics.keys():
         c.text(f"\n=== ANALISIS PERBANDINGAN ALGORITMA OPTIMASI - {vehicle_name} ===\n")
 
